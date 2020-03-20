@@ -240,6 +240,59 @@ where
         self.bit_len += count * 8;
     }
 
+    /// Writes count zeroes to the end of the buffer
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use bitbuffer::{BitWriteStream, LittleEndian, Result};
+    /// #
+    /// # fn main() -> Result<()> {
+    /// let mut stream = BitWriteStream::new(LittleEndian);
+    /// stream.write_zeroes(4);
+    /// stream.write_bool(true)?;
+    /// stream.write_zeroes(3);
+    ///
+    /// let buffer = stream.finish();
+    /// assert_eq!(buffer, [0b00010000]);
+    /// #
+    /// #     Ok(())
+    /// # }
+    /// ```
+    pub fn write_zeroes(&mut self, count: usize) {
+        self.bytes.resize((self.bit_len + count + 7) / 8, 0);
+        self.bit_len += count;
+    }
+
+    /// Write bits to align the buffer on a byte
+    /// written bits are set to zero
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use bitbuffer::{BitWriteStream, LittleEndian, Result};
+    /// #
+    /// # fn main() -> Result<()> {
+    /// let mut stream = BitWriteStream::new(LittleEndian);
+    /// stream.write_int(5u8, 4)?;
+    /// stream.write_align();
+    /// assert!(stream.bit_len() % 8 == 0);
+    /// stream.write_int(0x42u8, 8)?;
+    ///
+    ///
+    /// let buffer = stream.finish();
+    /// assert_eq!(buffer, [0b00000101,0x42]);
+    /// #
+    /// #     Ok(())
+    /// # }
+    /// ```
+    pub fn write_align(&mut self) {
+        match self.bit_len % 8 {
+            0 => (),
+            n => self.write_zeroes(8 - n),
+        }
+    }
+
     /// Write a string into the buffer
     ///
     /// # Examples
